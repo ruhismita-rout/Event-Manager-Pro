@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "EventFlow - Virtual Event Platform"
+version = "1.0.0"
+id = "artifacts/eventflow"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19467
+
+[services.development]
+run = "pnpm --filter @workspace/eventflow run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/eventflow", "run", "build" ]
+publicDir = "artifacts/eventflow/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19467"
+BASE_PATH = "/"

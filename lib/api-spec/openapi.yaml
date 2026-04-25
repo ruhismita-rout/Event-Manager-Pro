@@ -1,22 +1,31 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: EventFlow Virtual Event Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: events
+    description: Event management
+  - name: registrations
+    description: Attendee registration
+  - name: chat
+    description: Live chat messages
+  - name: streams
+    description: Live stream management
+  - name: dashboard
+    description: Organizer dashboard analytics
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +33,320 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List all events
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [upcoming, live, ended, all]
+          required: false
+        - name: search
+          in: query
+          schema:
+            type: string
+          required: false
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          required: false
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          required: false
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventListResponse"
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Create a new event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventBody"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /events/{eventId}:
+    get:
+      operationId: getEvent
+      tags: [events]
+      summary: Get event details
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          description: Event not found
+    put:
+      operationId: updateEvent
+      tags: [events]
+      summary: Update event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEventBody"
+      responses:
+        "200":
+          description: Event updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    delete:
+      operationId: deleteEvent
+      tags: [events]
+      summary: Delete event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Event deleted
+
+  /events/{eventId}/start-stream:
+    post:
+      operationId: startStream
+      tags: [streams]
+      summary: Start live stream for event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stream started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamStatus"
+
+  /events/{eventId}/end-stream:
+    post:
+      operationId: endStream
+      tags: [streams]
+      summary: End live stream for event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stream ended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamStatus"
+
+  /events/{eventId}/registrations:
+    get:
+      operationId: listEventRegistrations
+      tags: [registrations]
+      summary: List attendees registered for an event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of registrations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationListResponse"
+    post:
+      operationId: registerForEvent
+      tags: [registrations]
+      summary: Register for an event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterAttendeeBody"
+      responses:
+        "201":
+          description: Registration created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Registration"
+
+  /registrations/{registrationId}:
+    delete:
+      operationId: cancelRegistration
+      tags: [registrations]
+      summary: Cancel a registration
+      parameters:
+        - name: registrationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Registration cancelled
+
+  /events/{eventId}/chat:
+    get:
+      operationId: listChatMessages
+      tags: [chat]
+      summary: List chat messages for an event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          required: false
+        - name: before
+          in: query
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: List of chat messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessageListResponse"
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a chat message
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendChatMessageBody"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+
+  /chat/{messageId}:
+    delete:
+      operationId: deleteChatMessage
+      tags: [chat]
+      summary: Delete a chat message (moderator action)
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Message deleted
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get organizer dashboard statistics
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/upcoming-events:
+    get:
+      operationId: getUpcomingEvents
+      tags: [dashboard]
+      summary: Get upcoming events with registration counts
+      responses:
+        "200":
+          description: Upcoming events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventListResponse"
+
+  /dashboard/recent-registrations:
+    get:
+      operationId: getRecentRegistrations
+      tags: [dashboard]
+      summary: Get recent registrations across all events
+      responses:
+        "200":
+          description: Recent registrations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationListResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +357,287 @@ components:
       required:
         - status
 
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        hostName:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, upcoming, live, ended, cancelled]
+        category:
+          type: string
+        maxAttendees:
+          type: integer
+          nullable: true
+        registrationCount:
+          type: integer
+        streamUrl:
+          type: string
+          nullable: true
+        thumbnailUrl:
+          type: string
+          nullable: true
+        isPublic:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - description
+        - hostName
+        - scheduledAt
+        - status
+        - category
+        - registrationCount
+        - isPublic
+        - createdAt
+        - updatedAt
+
+    CreateEventBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        hostName:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+        category:
+          type: string
+        maxAttendees:
+          type: integer
+          nullable: true
+        streamUrl:
+          type: string
+          nullable: true
+        thumbnailUrl:
+          type: string
+          nullable: true
+        isPublic:
+          type: boolean
+          default: true
+      required:
+        - title
+        - description
+        - hostName
+        - scheduledAt
+        - category
+
+    UpdateEventBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        hostName:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+        category:
+          type: string
+        maxAttendees:
+          type: integer
+          nullable: true
+        streamUrl:
+          type: string
+          nullable: true
+        thumbnailUrl:
+          type: string
+          nullable: true
+        isPublic:
+          type: boolean
+        status:
+          type: string
+          enum: [draft, upcoming, live, ended, cancelled]
+
+    EventListResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        total:
+          type: integer
+      required:
+        - events
+        - total
+
+    Registration:
+      type: object
+      properties:
+        id:
+          type: integer
+        eventId:
+          type: integer
+        attendeeName:
+          type: string
+        attendeeEmail:
+          type: string
+        status:
+          type: string
+          enum: [confirmed, waitlisted, cancelled]
+        registeredAt:
+          type: string
+          format: date-time
+        event:
+          $ref: "#/components/schemas/Event"
+          nullable: true
+      required:
+        - id
+        - eventId
+        - attendeeName
+        - attendeeEmail
+        - status
+        - registeredAt
+
+    RegisterAttendeeBody:
+      type: object
+      properties:
+        attendeeName:
+          type: string
+        attendeeEmail:
+          type: string
+      required:
+        - attendeeName
+        - attendeeEmail
+
+    RegistrationListResponse:
+      type: object
+      properties:
+        registrations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Registration"
+        total:
+          type: integer
+      required:
+        - registrations
+        - total
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        eventId:
+          type: integer
+        senderName:
+          type: string
+        message:
+          type: string
+        isPinned:
+          type: boolean
+        isDeleted:
+          type: boolean
+        sentAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - eventId
+        - senderName
+        - message
+        - isPinned
+        - isDeleted
+        - sentAt
+
+    SendChatMessageBody:
+      type: object
+      properties:
+        senderName:
+          type: string
+        message:
+          type: string
+      required:
+        - senderName
+        - message
+
+    ChatMessageListResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        total:
+          type: integer
+      required:
+        - messages
+        - total
+
+    StreamStatus:
+      type: object
+      properties:
+        eventId:
+          type: integer
+        status:
+          type: string
+          enum: [live, ended]
+        streamUrl:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - eventId
+        - status
+
+    DashboardStats:
+      type: object
+      properties:
+        totalEvents:
+          type: integer
+        liveEvents:
+          type: integer
+        upcomingEvents:
+          type: integer
+        totalRegistrations:
+          type: integer
+        totalAttendees:
+          type: integer
+        eventsThisMonth:
+          type: integer
+        registrationsThisMonth:
+          type: integer
+      required:
+        - totalEvents
+        - liveEvents
+        - upcomingEvents
+        - totalRegistrations
+        - totalAttendees
+        - eventsThisMonth
+        - registrationsThisMonth
