@@ -155,12 +155,12 @@ router.post("/events/:eventId/start-stream", async (req, res): Promise<void> => 
 
   const updated = startStream(params.data.eventId);
 
-  if ("error" in updated && updated.error === "event-not-found") {
-    res.status(404).json({ error: "Event not found" });
-    return;
-  }
+  if ("error" in updated) {
+    if (updated.error === "event-not-found") {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
 
-  if ("error" in updated && updated.error === "missing-stream-url") {
     res.status(400).json({
       error:
         "No livestream URL configured. Set event streamUrl, or configure STREAM_URL_TEMPLATE / STREAM_DEFAULT_URL.",

@@ -54,12 +54,12 @@ router.post("/events/:eventId/registrations", async (req, res): Promise<void> =>
   }
 
   const result = registerForEvent(params.data.eventId, parsed.data);
-  if ("error" in result && result.error === "event-not-found") {
-    res.status(404).json({ error: "Event not found" });
-    return;
-  }
+  if ("error" in result) {
+    if (result.error === "event-not-found") {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
 
-  if ("error" in result && result.error === "registration-closed") {
     res.status(400).json({ error: "Cannot register for a completed or cancelled event" });
     return;
   }
