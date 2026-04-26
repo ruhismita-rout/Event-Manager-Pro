@@ -1,6 +1,4 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, lt } from "drizzle-orm";
-import { db, chatMessagesTable } from "@workspace/db";
 import {
   ListChatMessagesParams,
   ListChatMessagesQueryParams,
@@ -9,6 +7,11 @@ import {
   SendChatMessageBody,
   DeleteChatMessageParams,
 } from "@workspace/api-zod";
+import {
+  deleteChatMessage,
+  listChatMessages,
+  sendChatMessage,
+} from "../lib/store";
 
 const router: IRouter = Router();
 
@@ -25,25 +28,13 @@ router.get("/events/:eventId/chat", async (req, res): Promise<void> => {
     return;
   }
 
-  const { limit, before } = query.data;
+  const messages = listChatMessages({
+    eventId: params.data.eventId,
+    limit: query.data.limit,
+    before: query.data.before,
+  });
 
-  const conditions = [
-    eq(chatMessagesTable.eventId, params.data.eventId),
-    eq(chatMessagesTable.isDeleted, false),
-  ];
-
-  if (before) {
-    conditions.push(lt(chatMessagesTable.id, before));
-  }
-
-  const messages = await db
-    .select()
-    .from(chatMessagesTable)
-    .where(and(...conditions))
-    .orderBy(desc(chatMessagesTable.sentAt))
-    .limit(limit);
-
-  res.json(ListChatMessagesResponse.parse({ messages: messages.reverse(), total: messages.length }));
+  res.json(ListChatMessagesResponse.parse({ messages, total: messages.length }));
 });
 
 router.post("/events/:eventId/chat", async (req, res): Promise<void> => {
@@ -59,13 +50,7 @@ router.post("/events/:eventId/chat", async (req, res): Promise<void> => {
     return;
   }
 
-  const [message] = await db.insert(chatMessagesTable).values({
-    eventId: params.data.eventId,
-    senderName: parsed.data.senderName,
-    message: parsed.data.message,
-    isPinned: false,
-    isDeleted: false,
-  }).returning();
+  const message = sendChatMessage(params.data.eventId, parsed.data);
 
   res.status(201).json(message);
 });
@@ -77,11 +62,7 @@ router.delete("/chat/:messageId", async (req, res): Promise<void> => {
     return;
   }
 
-  const [updated] = await db
-    .update(chatMessagesTable)
-    .set({ isDeleted: true })
-    .where(eq(chatMessagesTable.id, params.data.messageId))
-    .returning();
+  const updated = deleteChatMessage(params.data.messageId);
 
   if (!updated) {
     res.status(404).json({ error: "Message not found" });

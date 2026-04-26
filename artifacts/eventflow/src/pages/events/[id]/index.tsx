@@ -13,6 +13,7 @@ import {
   getGetEventQueryKey,
   getListEventRegistrationsQueryKey,
   getListChatMessagesQueryKey,
+  type StartStreamMutationError,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { Link } from "wouter";
+import { ScreenSharePlayer } from "@/components/screen-share-player";
 
 export default function EventDetail() {
   const params = useParams();
@@ -130,7 +132,14 @@ export default function EventDetail() {
           toast.success("Stream started!");
           queryClient.invalidateQueries({ queryKey: getGetEventQueryKey(id) });
         },
-        onError: () => toast.error("Failed to start stream"),
+        onError: (error) => {
+          const apiError = error as StartStreamMutationError;
+          const detail =
+            apiError?.data && typeof apiError.data === "object"
+              ? (apiError.data as { error?: string }).error
+              : undefined;
+          toast.error(detail ?? "Failed to start stream");
+        },
       }
     );
   };
@@ -301,33 +310,17 @@ export default function EventDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {isLive && event.streamUrl ? (
-                  <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
-                    <iframe
-                      src={event.streamUrl}
-                      title="Live Stream"
-                      className="absolute inset-0 w-full h-full rounded-lg"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      data-testid="stream-iframe"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-48 bg-muted rounded-lg gap-3">
-                    <Radio className="w-10 h-10 text-muted-foreground opacity-40" />
-                    <p className="text-muted-foreground text-sm">
-                      {event.status === "ended"
-                        ? "Stream has ended"
-                        : "Stream not started yet"}
-                    </p>
-                    {event.status === "upcoming" && (
-                      <Button size="sm" onClick={handleStartStream} disabled={startStream.isPending}>
-                        <Play className="w-4 h-4 mr-2" />
-                        Start Stream
-                      </Button>
-                    )}
-                  </div>
-                )}
+                <ScreenSharePlayer
+                  eventId={id}
+                  fallbackStreamUrl={isLive ? event.streamUrl : null}
+                  eventStatus={event.status}
+                  onStarted={() => {
+                    queryClient.invalidateQueries({ queryKey: getGetEventQueryKey(id) });
+                  }}
+                  onStopped={() => {
+                    queryClient.invalidateQueries({ queryKey: getGetEventQueryKey(id) });
+                  }}
+                />
               </CardContent>
             </Card>
 

@@ -1,6 +1,4 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, count, sql, ilike, and } from "drizzle-orm";
-import { db, eventsTable, registrationsTable } from "@workspace/db";
 import {
   ListEventsQueryParams,
   ListEventsResponse,
@@ -16,6 +14,21 @@ import {
   EndStreamParams,
   EndStreamResponse,
 } from "@workspace/api-zod";
+import {
+  createEvent,
+  deleteEvent,
+  endStream,
+  getEvent,
+  createRtcPeer,
+  getRtcSignals,
+  getScreenShareState,
+  listEvents,
+  sendRtcSignal,
+  startScreenShare,
+  startStream,
+  stopScreenShare,
+  updateEvent,
+} from "../lib/store";
 
 const router: IRouter = Router();
 
@@ -36,47 +49,8 @@ router.get("/events", async (req, res): Promise<void> => {
     return;
   }
 
-  const { status, search, limit, offset } = parsed.data;
-
-  const conditions: ReturnType<typeof eq>[] = [];
-  if (status && status !== "all") {
-    conditions.push(eq(eventsTable.status, status));
-  }
-  if (search) {
-    conditions.push(ilike(eventsTable.title, `%${search}%`));
-  }
-
-  const [totalResult, rawEvents] = await Promise.all([
-    db
-      .select({ count: count() })
-      .from(eventsTable)
-      .where(conditions.length > 0 ? and(...conditions) : undefined),
-    db
-      .select({
-        id: eventsTable.id,
-        title: eventsTable.title,
-        description: eventsTable.description,
-        hostName: eventsTable.hostName,
-        scheduledAt: eventsTable.scheduledAt,
-        endsAt: eventsTable.endsAt,
-        status: eventsTable.status,
-        category: eventsTable.category,
-        maxAttendees: eventsTable.maxAttendees,
-        streamUrl: eventsTable.streamUrl,
-        thumbnailUrl: eventsTable.thumbnailUrl,
-        isPublic: eventsTable.isPublic,
-        createdAt: eventsTable.createdAt,
-        updatedAt: eventsTable.updatedAt,
-        registrationCount: sql<number>`(SELECT COUNT(*) FROM registrations WHERE event_id = ${eventsTable.id} AND status != 'cancelled')::int`,
-      })
-      .from(eventsTable)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(desc(eventsTable.scheduledAt))
-      .limit(limit)
-      .offset(offset),
-  ]);
-
-  res.json(ListEventsResponse.parse({ events: rawEvents.map(stripNullDates), total: totalResult[0]?.count ?? 0 }));
+  const { events, total } = listEvents(parsed.data);
+  res.json(ListEventsResponse.parse({ events: events.map(stripNullDates), total }));
 });
 
 router.post("/events", async (req, res): Promise<void> => {
@@ -86,17 +60,8 @@ router.post("/events", async (req, res): Promise<void> => {
     return;
   }
 
-  const [event] = await db.insert(eventsTable).values({
-    ...parsed.data,
-    status: "upcoming",
-  }).returning();
-
-  const eventWithCount = {
-    ...event,
-    registrationCount: 0,
-  };
-
-  res.status(201).json(GetEventResponse.parse(stripNullDates(eventWithCount)));
+  const event = createEvent(parsed.data);
+  res.status(201).json(GetEventResponse.parse(stripNullDates(event)));
 });
 
 router.get("/events/:eventId", async (req, res): Promise<void> => {
@@ -106,26 +71,7 @@ router.get("/events/:eventId", async (req, res): Promise<void> => {
     return;
   }
 
-  const [event] = await db
-    .select({
-      id: eventsTable.id,
-      title: eventsTable.title,
-      description: eventsTable.description,
-      hostName: eventsTable.hostName,
-      scheduledAt: eventsTable.scheduledAt,
-      endsAt: eventsTable.endsAt,
-      status: eventsTable.status,
-      category: eventsTable.category,
-      maxAttendees: eventsTable.maxAttendees,
-      streamUrl: eventsTable.streamUrl,
-      thumbnailUrl: eventsTable.thumbnailUrl,
-      isPublic: eventsTable.isPublic,
-      createdAt: eventsTable.createdAt,
-      updatedAt: eventsTable.updatedAt,
-      registrationCount: sql<number>`(SELECT COUNT(*) FROM registrations WHERE event_id = ${eventsTable.id} AND status != 'cancelled')::int`,
-    })
-    .from(eventsTable)
-    .where(eq(eventsTable.id, params.data.eventId));
+  const event = getEvent(params.data.eventId);
 
   if (!event) {
     res.status(404).json({ error: "Event not found" });
@@ -148,7 +94,19 @@ router.put("/events/:eventId", async (req, res): Promise<void> => {
     return;
   }
 
-  const updateData: Partial<typeof eventsTable.$inferInsert> = {};
+  const updateData: {
+    title?: string;
+    description?: string;
+    hostName?: string;
+    scheduledAt?: Date;
+    endsAt?: Date | null;
+    category?: string;
+    maxAttendees?: number | null;
+    streamUrl?: string | null;
+    thumbnailUrl?: string | null;
+    isPublic?: boolean;
+    status?: "draft" | "upcoming" | "live" | "ended" | "cancelled";
+  } = {};
   if (parsed.data.title !== undefined) updateData.title = parsed.data.title;
   if (parsed.data.description !== undefined) updateData.description = parsed.data.description;
   if (parsed.data.hostName !== undefined) updateData.hostName = parsed.data.hostName;
@@ -161,23 +119,14 @@ router.put("/events/:eventId", async (req, res): Promise<void> => {
   if (parsed.data.isPublic !== undefined) updateData.isPublic = parsed.data.isPublic;
   if (parsed.data.status !== undefined) updateData.status = parsed.data.status;
 
-  const [updated] = await db
-    .update(eventsTable)
-    .set(updateData)
-    .where(eq(eventsTable.id, params.data.eventId))
-    .returning();
+  const updated = updateEvent(params.data.eventId, updateData);
 
   if (!updated) {
     res.status(404).json({ error: "Event not found" });
     return;
   }
 
-  const regCount = await db
-    .select({ count: count() })
-    .from(registrationsTable)
-    .where(and(eq(registrationsTable.eventId, updated.id), sql`status != 'cancelled'`));
-
-  res.json(UpdateEventResponse.parse(stripNullDates({ ...updated, registrationCount: regCount[0]?.count ?? 0 })));
+  res.json(UpdateEventResponse.parse(stripNullDates(updated)));
 });
 
 router.delete("/events/:eventId", async (req, res): Promise<void> => {
@@ -187,10 +136,7 @@ router.delete("/events/:eventId", async (req, res): Promise<void> => {
     return;
   }
 
-  const [deleted] = await db
-    .delete(eventsTable)
-    .where(eq(eventsTable.id, params.data.eventId))
-    .returning();
+  const deleted = deleteEvent(params.data.eventId);
 
   if (!deleted) {
     res.status(404).json({ error: "Event not found" });
@@ -207,24 +153,26 @@ router.post("/events/:eventId/start-stream", async (req, res): Promise<void> => 
     return;
   }
 
-  const streamUrl = `https://stream.eventflow.live/${params.data.eventId}`;
+  const updated = startStream(params.data.eventId);
 
-  const [updated] = await db
-    .update(eventsTable)
-    .set({ status: "live", streamUrl })
-    .where(eq(eventsTable.id, params.data.eventId))
-    .returning();
-
-  if (!updated) {
+  if ("error" in updated && updated.error === "event-not-found") {
     res.status(404).json({ error: "Event not found" });
     return;
   }
 
+  if ("error" in updated && updated.error === "missing-stream-url") {
+    res.status(400).json({
+      error:
+        "No livestream URL configured. Set event streamUrl, or configure STREAM_URL_TEMPLATE / STREAM_DEFAULT_URL.",
+    });
+    return;
+  }
+
   res.json(StartStreamResponse.parse({
-    eventId: updated.id,
+    eventId: updated.eventId,
     status: "live",
-    streamUrl,
-    startedAt: new Date(),
+    streamUrl: updated.streamUrl,
+    startedAt: updated.startedAt,
   }));
 });
 
@@ -235,11 +183,7 @@ router.post("/events/:eventId/end-stream", async (req, res): Promise<void> => {
     return;
   }
 
-  const [updated] = await db
-    .update(eventsTable)
-    .set({ status: "ended" })
-    .where(eq(eventsTable.id, params.data.eventId))
-    .returning();
+  const updated = endStream(params.data.eventId);
 
   if (!updated) {
     res.status(404).json({ error: "Event not found" });
@@ -247,11 +191,113 @@ router.post("/events/:eventId/end-stream", async (req, res): Promise<void> => {
   }
 
   res.json(EndStreamResponse.parse({
-    eventId: updated.id,
+    eventId: updated.eventId,
     status: "ended",
     streamUrl: null,
     startedAt: null,
   }));
+});
+
+router.get("/events/:eventId/screen-share/state", async (req, res): Promise<void> => {
+  const params = GetEventParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  res.json(getScreenShareState(params.data.eventId));
+});
+
+router.post("/events/:eventId/screen-share/start", async (req, res): Promise<void> => {
+  const params = GetEventParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const result = startScreenShare(params.data.eventId);
+  if ("error" in result) {
+    res.status(404).json({ error: "Event not found" });
+    return;
+  }
+
+  res.status(201).json({
+    eventId: result.eventId,
+    broadcasterPeerId: result.broadcasterPeerId,
+    startedAt: result.startedAt,
+  });
+});
+
+router.post("/events/:eventId/screen-share/stop", async (req, res): Promise<void> => {
+  const params = GetEventParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  if (!stopScreenShare(params.data.eventId)) {
+    res.status(404).json({ error: "Event not found" });
+    return;
+  }
+
+  res.sendStatus(204);
+});
+
+router.post("/events/:eventId/screen-share/peer", async (req, res): Promise<void> => {
+  const params = GetEventParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  res.status(201).json({ peerId: createRtcPeer() });
+});
+
+router.post("/events/:eventId/screen-share/signals", async (req, res): Promise<void> => {
+  const params = GetEventParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const body = req.body as {
+    fromPeerId?: string;
+    toPeerId?: string;
+    type?: "offer" | "answer" | "candidate";
+    payload?: unknown;
+  };
+
+  if (!body.fromPeerId || !body.toPeerId || !body.type) {
+    res.status(400).json({ error: "Invalid signaling payload" });
+    return;
+  }
+
+  const signal = sendRtcSignal(params.data.eventId, {
+    fromPeerId: body.fromPeerId,
+    toPeerId: body.toPeerId,
+    type: body.type,
+    payload: body.payload,
+  });
+
+  res.status(201).json(signal);
+});
+
+router.get("/events/:eventId/screen-share/signals", async (req, res): Promise<void> => {
+  const params = GetEventParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const peerId = typeof req.query.peerId === "string" ? req.query.peerId : "";
+  const since = typeof req.query.since === "string" ? Number(req.query.since) : 0;
+
+  if (!peerId) {
+    res.status(400).json({ error: "peerId is required" });
+    return;
+  }
+
+  res.json({ signals: getRtcSignals(params.data.eventId, peerId, Number.isNaN(since) ? 0 : since) });
 });
 
 export default router;
