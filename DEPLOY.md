@@ -43,6 +43,8 @@ Set these environment variables on `eventflow-app`:
 - `APP_BASE_URL`: public base URL (for event and unsubscribe links)
 - `RESEND_API_KEY`: Resend API key
 - `RESEND_FROM_EMAIL`: sender address (for example `EventFlow <onboarding@resend.dev>`)
+   - If your Resend account is still in testing mode, mail may only be deliverable to your verified inbox.
+   - To email real attendees, verify a domain in Resend and use an address on that domain.
 - `NOTIFICATION_TOKEN_SECRET`: secret used to sign unsubscribe tokens
 - `REMINDER_CRON_SECRET`: optional shared secret for reminder trigger protection
 

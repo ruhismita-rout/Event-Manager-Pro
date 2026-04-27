@@ -12,7 +12,6 @@ import {
   listRegistrations,
   registerForEvent,
 } from "../lib/store";
-import { sendRsvpConfirmationEmail } from "../lib/notifications/service";
 
 const router: IRouter = Router();
 
@@ -71,42 +70,6 @@ router.post("/events/:eventId/registrations", async (req, res): Promise<void> =>
     ...registration,
     event: GetEventResponse.parse(stripNullDates(event)),
   });
-
-  void sendRsvpConfirmationEmail(event, registration);
-});
-
-router.post("/events/:id/rsvp", async (req, res): Promise<void> => {
-  const eventId = Number(req.params.id);
-  if (!Number.isInteger(eventId) || eventId <= 0) {
-    res.status(400).json({ error: "Invalid event id" });
-    return;
-  }
-
-  const parsed = RegisterForEventBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-
-  const result = registerForEvent(eventId, parsed.data);
-  if ("error" in result) {
-    if (result.error === "event-not-found") {
-      res.status(404).json({ error: "Event not found" });
-      return;
-    }
-
-    res.status(400).json({ error: "Cannot register for a completed or cancelled event" });
-    return;
-  }
-
-  const { registration, event } = result;
-
-  res.status(201).json({
-    ...registration,
-    event: GetEventResponse.parse(stripNullDates(event)),
-  });
-
-  void sendRsvpConfirmationEmail(event, registration);
 });
 
 router.delete("/registrations/:registrationId", async (req, res): Promise<void> => {
