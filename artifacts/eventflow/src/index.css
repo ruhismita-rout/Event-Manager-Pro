@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -67,51 +68,50 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  /* Light background, highly readable, sharp slate/blue accents */
-  --background: 210 40% 98%; /* slate-50 */
-  --foreground: 222 47% 11%; /* slate-950 */
-  
-  --border: 214 32% 91%; /* slate-200 */
-  --input: 214 32% 91%;
-  --ring: 221 83% 53%; /* blue-600 */
-  
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --card-border: 214 32% 91%;
-  
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --popover-border: 214 32% 91%;
-  
-  --primary: 221 83% 53%; /* blue-600 */
-  --primary-foreground: 210 40% 98%;
-  
-  --secondary: 217 33% 17%; /* slate-800 */
-  --secondary-foreground: 210 40% 98%;
-  
-  --muted: 214 32% 91%;
-  --muted-foreground: 215 16% 47%; /* slate-500 */
-  
-  --accent: 221 83% 95%; /* blue-100 */
-  --accent-foreground: 221 83% 53%;
-  
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  
-  --sidebar: 222 47% 11%; /* slate-950 */
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 217 33% 17%;
-  --sidebar-primary: 221 83% 53%;
-  --sidebar-primary-foreground: 210 40% 98%;
-  --sidebar-accent: 217 33% 17%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-ring: 221 83% 53%;
+  --background: 54 100% 92%;
+  --foreground: 239 35% 10%;
 
-  --app-font-sans: 'Inter', system-ui, sans-serif;
+  --border: 239 35% 10%;
+  --input: 0 0% 100%;
+  --ring: 336 100% 44%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 239 35% 10%;
+  --card-border: 239 35% 10%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 239 35% 10%;
+  --popover-border: 239 35% 10%;
+
+  --primary: 252 100% 61%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 187 97% 48%;
+  --secondary-foreground: 239 35% 10%;
+
+  --muted: 50 100% 86%;
+  --muted-foreground: 239 16% 30%;
+
+  --accent: 26 100% 62%;
+  --accent-foreground: 239 35% 10%;
+
+  --destructive: 350 100% 50%;
+  --destructive-foreground: 210 40% 98%;
+
+  --sidebar: 239 35% 10%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-border: 239 35% 10%;
+  --sidebar-primary: 252 100% 61%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 50 100% 86%;
+  --sidebar-accent-foreground: 239 35% 10%;
+  --sidebar-ring: 336 100% 44%;
+
+  --app-font-sans: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --radius: 0.375rem;
-  
+  --app-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --radius: 0px;
+
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -122,51 +122,126 @@
 }
 
 .dark {
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
-  
-  --border: 217 33% 17%;
-  --input: 217 33% 17%;
-  --ring: 221 83% 53%;
-  
-  --card: 222 47% 11%;
-  --card-foreground: 210 40% 98%;
-  --card-border: 217 33% 17%;
-  
-  --popover: 222 47% 11%;
-  --popover-foreground: 210 40% 98%;
-  --popover-border: 217 33% 17%;
-  
-  --primary: 221 83% 53%;
-  --primary-foreground: 210 40% 98%;
-  
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 98%;
-  
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20.2% 65.1%;
-  
-  --accent: 217 33% 17%;
-  --accent-foreground: 210 40% 98%;
-  
-  --destructive: 0 62.8% 30.6%;
+  --background: 236 33% 9%;
+  --foreground: 50 100% 88%;
+
+  --border: 50 100% 88%;
+  --input: 236 28% 14%;
+  --ring: 187 97% 48%;
+
+  --card: 236 28% 14%;
+  --card-foreground: 50 100% 88%;
+  --card-border: 50 100% 88%;
+
+  --popover: 236 28% 14%;
+  --popover-foreground: 50 100% 88%;
+  --popover-border: 50 100% 88%;
+
+  --primary: 26 100% 62%;
+  --primary-foreground: 239 35% 10%;
+
+  --secondary: 187 97% 48%;
+  --secondary-foreground: 239 35% 10%;
+
+  --muted: 236 25% 19%;
+  --muted-foreground: 50 40% 73%;
+
+  --accent: 252 100% 61%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 350 100% 57%;
   --destructive-foreground: 210 40% 98%;
-  
-  --sidebar: 222 47% 11%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 217 33% 17%;
-  --sidebar-primary: 221 83% 53%;
-  --sidebar-primary-foreground: 210 40% 98%;
-  --sidebar-accent: 217 33% 17%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-ring: 221 83% 53%;
+
+  --sidebar: 236 30% 12%;
+  --sidebar-foreground: 50 100% 88%;
+  --sidebar-border: 50 100% 88%;
+  --sidebar-primary: 26 100% 62%;
+  --sidebar-primary-foreground: 239 35% 10%;
+  --sidebar-accent: 236 25% 19%;
+  --sidebar-accent-foreground: 50 100% 88%;
+  --sidebar-ring: 187 97% 48%;
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-family: var(--app-font-sans);
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.14) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.14) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: 0 0;
+  }
+}
+
+@layer utilities {
+  @keyframes mesh-drift {
+    0% {
+      background-position: 0 0, 0 0;
+    }
+    100% {
+      background-position: 24px 24px, 24px 24px;
+    }
+  }
+
+  .surface-glass {
+    background: hsl(var(--card));
+    border: 2.5px solid hsl(var(--border));
+    box-shadow: 6px 6px 0 hsl(var(--border));
+  }
+
+  .surface-hero {
+    background: hsl(var(--accent));
+    border: 3px solid hsl(var(--border));
+    box-shadow: 10px 10px 0 hsl(var(--border));
+  }
+
+  .surface-mesh {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.25) 2px, transparent 2px),
+      linear-gradient(90deg, hsl(var(--border) / 0.25) 2px, transparent 2px);
+    background-size: 24px 24px;
+    background-position: 0 0, 0 0;
+    animation: mesh-drift 6s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .surface-mesh {
+      animation: none;
+    }
+  }
+
+  .shadow-soft {
+    box-shadow: 8px 8px 0 hsl(var(--border));
+  }
+
+  .shadow-panel {
+    box-shadow: 6px 6px 0 hsl(var(--border));
+  }
+
+  .hard-interactive {
+    transition: all 0.12s ease;
+  }
+
+  .hard-interactive:hover {
+    transform: translate(-2px, -2px);
+  }
+
+  .hard-interactive:active {
+    transform: translate(2px, 2px);
+  }
+
+  .neo-inset {
+    box-shadow: inset 3px 3px 0 hsl(var(--border));
+  }
+
+  .text-balance {
+    text-wrap: balance;
   }
 }

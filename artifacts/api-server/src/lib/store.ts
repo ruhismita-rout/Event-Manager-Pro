@@ -478,9 +478,8 @@ export function getDashboardStats(): {
 }
 
 export function getUpcomingEvents(limit = 5): EventWithCount[] {
-  const now = new Date();
   return Array.from(events.values())
-    .filter((event) => event.status === "upcoming" && event.scheduledAt >= now)
+    .filter((event) => event.status === "upcoming")
     .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
     .slice(0, limit)
     .map(withCount);
