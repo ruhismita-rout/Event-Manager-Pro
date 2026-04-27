@@ -10,6 +10,7 @@ export type AuthTokenGetter = () => Promise<string | null> | string | null;
 
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
+const AUTH_STORAGE_KEY = "eventflow.auth";
 
 // ---------------------------------------------------------------------------
 // Module-level configuration
@@ -89,6 +90,25 @@ function mergeHeaders(...sources: Array<HeadersInit | undefined>): Headers {
   }
 
   return headers;
+}
+
+function applyStoredAuthHeaders(headers: Headers): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return;
+
+    const parsed = JSON.parse(raw) as { role?: string; name?: string } | null;
+    if (parsed?.role) {
+      headers.set("x-eventflow-role", parsed.role);
+    }
+    if (parsed?.name) {
+      headers.set("x-eventflow-user", parsed.name);
+    }
+  } catch {
+    // Ignore malformed auth state.
+  }
 }
 
 function getMediaType(headers: Headers): string | null {
@@ -357,6 +377,8 @@ export async function customFetch<T = unknown>(
       headers.set("authorization", `Bearer ${token}`);
     }
   }
+
+  applyStoredAuthHeaders(headers);
 
   const requestInfo = { method, url: resolveUrl(input) };
 

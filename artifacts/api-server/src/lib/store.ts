@@ -53,17 +53,31 @@ export type ChatMessageRecord = {
   sentAt: Date;
 };
 
+export type NotificationType = "confirmation" | "reminder_24h" | "reminder_1h";
+
+export type NotificationLogRecord = {
+  id: number;
+  userEmail: string;
+  eventId: number;
+  type: NotificationType;
+  sentAt: Date;
+  status: string;
+};
+
 type EventWithCount = EventRecord & { registrationCount: number };
 
 const events = new Map<number, EventRecord>();
 const registrations = new Map<number, RegistrationRecord>();
 const chatMessages = new Map<number, ChatMessageRecord>();
+const notificationLogs = new Map<number, NotificationLogRecord>();
+const unsubscribedNotifications = new Set<string>();
 
 let nextEventId = 1;
 let nextRegistrationId = 1;
 let nextChatId = 1;
 let nextPeerId = 1;
 let nextSignalSeq = 1;
+let nextNotificationLogId = 1;
 
 const rtcSessions = new Map<number, RtcSession>();
 const rtcSignals = new Map<number, RtcSignalMessage[]>();
@@ -180,6 +194,10 @@ function withCount(event: EventRecord): EventWithCount {
     ...event,
     registrationCount: registrationCountFor(event.id),
   };
+}
+
+function notificationSubscriptionKey(eventId: number, userEmail: string): string {
+  return `${eventId}:${userEmail.trim().toLowerCase()}`;
 }
 
 export function listEvents(params: {
@@ -489,6 +507,59 @@ export function getRecentRegistrations(limit = 10): RegistrationRecord[] {
   return Array.from(registrations.values())
     .sort((a, b) => b.registeredAt.getTime() - a.registeredAt.getTime())
     .slice(0, limit);
+}
+
+export function createNotificationLog(input: {
+  userEmail: string;
+  eventId: number;
+  type: NotificationType;
+  status: string;
+}): NotificationLogRecord {
+  const log: NotificationLogRecord = {
+    id: nextNotificationLogId++,
+    userEmail: input.userEmail.trim().toLowerCase(),
+    eventId: input.eventId,
+    type: input.type,
+    status: input.status,
+    sentAt: new Date(),
+  };
+
+  notificationLogs.set(log.id, log);
+  return log;
+}
+
+export function listNotificationLogs(): NotificationLogRecord[] {
+  return Array.from(notificationLogs.values()).sort((a, b) => b.sentAt.getTime() - a.sentAt.getTime());
+}
+
+export function hasNotificationLog(eventId: number, userEmail: string, type: NotificationType): boolean {
+  const normalized = userEmail.trim().toLowerCase();
+
+  for (const log of notificationLogs.values()) {
+    if (log.eventId === eventId && log.type === type && log.userEmail === normalized && log.status === "sent") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function markNotificationsUnsubscribed(eventId: number, userEmail: string): void {
+  unsubscribedNotifications.add(notificationSubscriptionKey(eventId, userEmail));
+}
+
+export function isNotificationsUnsubscribed(eventId: number, userEmail: string): boolean {
+  return unsubscribedNotifications.has(notificationSubscriptionKey(eventId, userEmail));
+}
+
+export function getUpcomingEventsInWindow(startInclusive: Date, endInclusive: Date): EventWithCount[] {
+  return Array.from(events.values())
+    .filter((event) => {
+      if (event.status !== "upcoming") return false;
+      return event.scheduledAt >= startInclusive && event.scheduledAt <= endInclusive;
+    })
+    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+    .map(withCount);
 }
 
 export function startScreenShare(eventId: number):

@@ -35,3 +35,20 @@ The configuration lives in [render.yaml](/C:/Users/kranu/Downloads/Event-Manager
 - Health check: `https://<your-render-service>.onrender.com/api/healthz`
 
 The web service serves the SPA directly, so frontend routes like `/dashboard` and `/events/:id` work from the same public URL as the API.
+
+## Notifications setup
+
+Set these environment variables on `eventflow-app`:
+
+- `APP_BASE_URL`: public base URL (for event and unsubscribe links)
+- `RESEND_API_KEY`: Resend API key
+- `RESEND_FROM_EMAIL`: sender address (for example `EventFlow <onboarding@resend.dev>`)
+- `NOTIFICATION_TOKEN_SECRET`: secret used to sign unsubscribe tokens
+- `REMINDER_CRON_SECRET`: optional shared secret for reminder trigger protection
+
+Reminder emails are sent by calling `POST /api/notifications/reminders/run`.
+
+- Manual run in repo root: `pnpm --filter @workspace/scripts run send-reminders`
+- Local watch mode (every 30 minutes): `pnpm --filter @workspace/scripts run send-reminders:watch`
+
+For production scheduling, configure a cron job (Render Cron Job, GitHub Action schedule, or any scheduler) to execute the manual command every 30 minutes.

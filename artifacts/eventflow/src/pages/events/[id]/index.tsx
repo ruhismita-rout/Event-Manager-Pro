@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { ScreenSharePlayer } from "@/components/screen-share-player";
+import { useAuth } from "@/lib/auth";
 
 const pageVariants = {
   hidden: { opacity: 0, y: 18 },
@@ -74,6 +75,7 @@ export default function EventDetail() {
   const [, setLocation] = useLocation();
   const id = params.id ? parseInt(params.id) : 0;
   const queryClient = useQueryClient();
+  const { isOrganizer } = useAuth();
 
   const [chatName, setChatName] = useState("");
   const [chatMessage, setChatMessage] = useState("");
@@ -407,48 +409,50 @@ export default function EventDetail() {
           </div>
         </motion.section>
 
-        <div className="flex items-center justify-end gap-2">
-          {event.status === "upcoming" && (
+        {isOrganizer && (
+          <div className="flex items-center justify-end gap-2">
+            {event.status === "upcoming" && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleStartStream}
+                disabled={startStream.isPending}
+                data-testid="button-start-stream"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                {startStream.isPending ? "Starting..." : "Start Stream"}
+              </Button>
+            )}
+            {isLive && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleEndStream}
+                disabled={endStream.isPending}
+                data-testid="button-end-stream"
+              >
+                <Square className="w-4 h-4 mr-2" />
+                {endStream.isPending ? "Ending..." : "End Stream"}
+              </Button>
+            )}
+            <Link href={`/events/${id}/edit`}>
+              <Button variant="outline" size="sm" data-testid="button-edit-event">
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            </Link>
             <Button
-              variant="default"
+              variant="ghost"
               size="sm"
-              onClick={handleStartStream}
-              disabled={startStream.isPending}
-              data-testid="button-start-stream"
+              onClick={handleDelete}
+              disabled={deleteEvent.isPending}
+              className="text-destructive hover:text-destructive"
+              data-testid="button-delete-event"
             >
-              <Play className="w-4 h-4 mr-2" />
-              {startStream.isPending ? "Starting..." : "Start Stream"}
+              <Trash2 className="w-4 h-4" />
             </Button>
-          )}
-          {isLive && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleEndStream}
-              disabled={endStream.isPending}
-              data-testid="button-end-stream"
-            >
-              <Square className="w-4 h-4 mr-2" />
-              {endStream.isPending ? "Ending..." : "End Stream"}
-            </Button>
-          )}
-          <Link href={`/events/${id}/edit`}>
-            <Button variant="outline" size="sm" data-testid="button-edit-event">
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
-            </Button>
-          </Link>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleteEvent.isPending}
-            className="text-destructive hover:text-destructive"
-            data-testid="button-delete-event"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <div className="space-y-6 xl:col-span-2">
@@ -471,6 +475,7 @@ export default function EventDetail() {
                     eventId={id}
                     fallbackStreamUrl={isLive ? event.streamUrl : null}
                     eventStatus={event.status}
+                    canControl={isOrganizer}
                     onStarted={() => {
                       queryClient.invalidateQueries({ queryKey: getGetEventQueryKey(id) });
                     }}
@@ -505,6 +510,7 @@ export default function EventDetail() {
               </Card>
             </motion.div>
 
+            {!isOrganizer && (
             <motion.div custom={3} variants={panelVariants} initial="hidden" animate="show">
               <Card className="rounded-[26px] border-white/60 bg-white/82 shadow-panel">
                 <CardHeader className="flex flex-row items-center justify-between gap-4">
@@ -801,8 +807,10 @@ export default function EventDetail() {
                 </CardContent>
               </Card>
             </motion.div>
+            )}
           </div>
 
+          {!isOrganizer && (
           <motion.div custom={4} variants={panelVariants} initial="hidden" animate="show" className="xl:col-span-1">
             <Card className="flex h-full max-h-[calc(100vh-160px)] flex-col rounded-[26px] border-white/60 bg-white/82 shadow-panel">
               <CardHeader className="pb-3">
@@ -877,6 +885,7 @@ export default function EventDetail() {
               </CardContent>
             </Card>
           </motion.div>
+          )}
         </div>
       </motion.div>
     </AppLayout>

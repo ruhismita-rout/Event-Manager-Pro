@@ -4,10 +4,12 @@ import { EventCard } from "@/components/event-card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { LayoutDashboard, Radio, CalendarRange, Users, ArrowRight } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 export default function Landing() {
+  const { isOrganizer, logout } = useAuth();
   const { data, isLoading } = useListEvents({ status: "all" });
-  
+
   const liveEvents = data?.events.filter(e => e.status === "live") || [];
   const upcomingEvents = data?.events.filter(e => e.status === "upcoming") || [];
   const totalRegistrations = data?.events.reduce((sum, event) => sum + event.registrationCount, 0) ?? 0;
@@ -23,10 +25,22 @@ export default function Landing() {
             <span className="font-black text-xl tracking-tight text-foreground uppercase">EventFlow</span>
           </div>
           <nav>
-            <Link href="/dashboard" className="text-sm font-bold uppercase tracking-wide text-foreground hover:text-primary flex items-center gap-2 transition-colors">
-              <LayoutDashboard className="w-4 h-4" />
-              Organizer Login
-            </Link>
+            {isOrganizer ? (
+              <div className="flex items-center gap-3">
+                <Link href="/dashboard" className="text-sm font-bold uppercase tracking-wide text-foreground hover:text-primary flex items-center gap-2 transition-colors">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Organizer Dashboard
+                </Link>
+                <Button variant="outline" size="sm" onClick={logout}>
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Link href="/login" className="text-sm font-bold uppercase tracking-wide text-foreground hover:text-primary flex items-center gap-2 transition-colors">
+                <LayoutDashboard className="w-4 h-4" />
+                Organizer Login
+              </Link>
+            )}
           </nav>
         </div>
       </header>

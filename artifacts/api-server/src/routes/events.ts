@@ -29,8 +29,22 @@ import {
   stopScreenShare,
   updateEvent,
 } from "../lib/store";
+import { createEventIcs } from "../lib/email/calendar";
 
 const router: IRouter = Router();
+
+function isOrganizerRequest(req: { header(name: string): string | undefined }): boolean {
+  return req.header("x-eventflow-role") === "organizer";
+}
+
+function requireOrganizer(req: { header(name: string): string | undefined }, res: { status(code: number): { json(body: unknown): void } }): boolean {
+  if (isOrganizerRequest(req)) {
+    return true;
+  }
+
+  res.status(403).json({ error: "Organizer access required" });
+  return false;
+}
 
 function stripNullDates<T extends Record<string, unknown>>(obj: T): T {
   const result = { ...obj } as T;
@@ -40,6 +54,10 @@ function stripNullDates<T extends Record<string, unknown>>(obj: T): T {
     }
   }
   return result;
+}
+
+function getAppBaseUrl(): string {
+  return process.env.APP_BASE_URL?.trim() || process.env.VITE_API_BASE_URL?.trim() || "http://localhost:3001";
 }
 
 router.get("/events", async (req, res): Promise<void> => {
@@ -54,6 +72,8 @@ router.get("/events", async (req, res): Promise<void> => {
 });
 
 router.post("/events", async (req, res): Promise<void> => {
+  if (!requireOrganizer(req, res)) return;
+
   const parsed = CreateEventBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -81,7 +101,29 @@ router.get("/events/:eventId", async (req, res): Promise<void> => {
   res.json(GetEventResponse.parse(stripNullDates(event)));
 });
 
+router.get("/events/:eventId/ics", async (req, res): Promise<void> => {
+  const params = GetEventParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const event = getEvent(params.data.eventId);
+  if (!event) {
+    res.status(404).json({ error: "Event not found" });
+    return;
+  }
+
+  const ics = createEventIcs(event, getAppBaseUrl());
+
+  res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename=event-${event.id}.ics`);
+  res.send(ics);
+});
+
 router.put("/events/:eventId", async (req, res): Promise<void> => {
+  if (!requireOrganizer(req, res)) return;
+
   const params = UpdateEventParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -130,6 +172,8 @@ router.put("/events/:eventId", async (req, res): Promise<void> => {
 });
 
 router.delete("/events/:eventId", async (req, res): Promise<void> => {
+  if (!requireOrganizer(req, res)) return;
+
   const params = DeleteEventParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -147,6 +191,8 @@ router.delete("/events/:eventId", async (req, res): Promise<void> => {
 });
 
 router.post("/events/:eventId/start-stream", async (req, res): Promise<void> => {
+  if (!requireOrganizer(req, res)) return;
+
   const params = StartStreamParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -177,6 +223,8 @@ router.post("/events/:eventId/start-stream", async (req, res): Promise<void> => 
 });
 
 router.post("/events/:eventId/end-stream", async (req, res): Promise<void> => {
+  if (!requireOrganizer(req, res)) return;
+
   const params = EndStreamParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -209,6 +257,8 @@ router.get("/events/:eventId/screen-share/state", async (req, res): Promise<void
 });
 
 router.post("/events/:eventId/screen-share/start", async (req, res): Promise<void> => {
+  if (!requireOrganizer(req, res)) return;
+
   const params = GetEventParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -229,6 +279,8 @@ router.post("/events/:eventId/screen-share/start", async (req, res): Promise<voi
 });
 
 router.post("/events/:eventId/screen-share/stop", async (req, res): Promise<void> => {
+  if (!requireOrganizer(req, res)) return;
+
   const params = GetEventParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

@@ -22,6 +22,7 @@ type ScreenSharePlayerProps = {
   eventId: number;
   fallbackStreamUrl?: string | null;
   eventStatus: "draft" | "upcoming" | "live" | "ended" | "cancelled";
+  canControl?: boolean;
   onStarted?: () => void;
   onStopped?: () => void;
 };
@@ -108,6 +109,7 @@ export function ScreenSharePlayer({
   eventId,
   fallbackStreamUrl,
   eventStatus,
+  canControl = true,
   onStarted,
   onStopped,
 }: ScreenSharePlayerProps) {
@@ -139,8 +141,8 @@ export function ScreenSharePlayer({
   const hostPollingRef = useRef<number | null>(null);
 
   const isLocalHost = useMemo(() => {
-    return Boolean(hostPeerId && rtcState.active && rtcState.broadcasterPeerId === hostPeerId);
-  }, [hostPeerId, rtcState.active, rtcState.broadcasterPeerId]);
+    return canControl && Boolean(hostPeerId && rtcState.active && rtcState.broadcasterPeerId === hostPeerId);
+  }, [canControl, hostPeerId, rtcState.active, rtcState.broadcasterPeerId]);
 
   const stopAllPeers = () => {
     for (const pc of hostPeersRef.current.values()) {
@@ -333,6 +335,8 @@ export function ScreenSharePlayer({
   };
 
   const startScreenShare = async () => {
+    if (!canControl) return;
+
     setIsStarting(true);
     try {
       const stream = await captureScreen();
@@ -436,7 +440,7 @@ export function ScreenSharePlayer({
     ensureVideoStream(remoteVideoRef.current, remoteStreamState);
   }, [remoteStreamState]);
 
-  const canStartHost = !isLocalHost && eventStatus !== "ended" && eventStatus !== "cancelled";
+  const canStartHost = canControl && !isLocalHost && eventStatus !== "ended" && eventStatus !== "cancelled";
 
   return (
     <div className="space-y-4">

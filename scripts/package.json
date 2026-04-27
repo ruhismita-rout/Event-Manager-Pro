@@ -5,7 +5,12 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "send-reminders": "tsx ./src/send-reminders.ts",
+    "send-reminders:watch": "tsx ./src/send-reminders.ts --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "node-cron": "^4.2.1"
   },
   "devDependencies": {
     "@types/node": "catalog:",
