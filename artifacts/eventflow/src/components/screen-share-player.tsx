@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getAuthNameFromStorage, getAuthRoleFromStorage } from "@/lib/auth";
 import { toast } from "sonner";
 import { Camera, ScreenShare, Square } from "lucide-react";
 
@@ -34,10 +35,15 @@ function storageKey(eventId: number): string {
 }
 
 async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const authRole = getAuthRoleFromStorage();
+  const authName = getAuthNameFromStorage();
+
   const response = await fetch(url, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...(authRole ? { "x-eventflow-role": authRole } : {}),
+      ...(authName ? { "x-eventflow-user": authName } : {}),
       ...(init?.headers ?? {}),
     },
   });
